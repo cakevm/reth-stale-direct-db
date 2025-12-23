@@ -1,6 +1,7 @@
 mod cli;
 mod consistency;
 mod monitor;
+mod sync;
 
 use clap::Parser;
 use eyre::Result;

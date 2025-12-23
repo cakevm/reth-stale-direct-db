@@ -7,9 +7,11 @@ use reth_ethereum::primitives::AlloyBlockHeader;
 use reth_ethereum::provider::{BlockHashReader, BlockNumReader, HeaderProvider};
 use reth_provider::ProviderFactory;
 use reth_provider::providers::ProviderNodeTypes;
+use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
 use crate::consistency::check_block_hash_reader_health;
+use crate::sync::wait_for_sync;
 
 /// Run the block monitoring loop.
 ///
@@ -26,6 +28,9 @@ where
     let ws = WsConnect::new(rpc_ws);
     let rpc_provider = ProviderBuilder::new().connect_ws(ws).await?;
     info!("Connected to WebSocket RPC");
+
+    // Wait for node to sync
+    wait_for_sync(&rpc_provider, Duration::from_secs(5)).await?;
 
     // Subscribe to new blocks
     let sub = rpc_provider.subscribe_blocks().await?;

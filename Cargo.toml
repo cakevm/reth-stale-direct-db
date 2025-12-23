@@ -11,6 +11,7 @@ reth-provider = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3" }
 
 # alloy
 alloy-provider = { version = "1.1", features = ["ws"] }
+alloy-rpc-types-eth = "1.1"
 
 # async
 tokio = { version = "1", features = ["full"] }
