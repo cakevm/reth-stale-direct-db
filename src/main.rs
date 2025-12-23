@@ -27,6 +27,10 @@ async fn main() -> Result<()> {
     info!("RPC WebSocket: {}", args.rpc_ws);
     info!("DB Path: {:?}", args.db_path);
     info!("Chain: {:?}", args.chain);
+    info!(
+        "Subscribe persisted blocks: {}",
+        args.subscribe_persisted_blocks
+    );
 
     // Get chain spec
     let chain_spec = get_chain_spec(args.chain);
@@ -37,5 +41,5 @@ async fn main() -> Result<()> {
     info!("Database opened successfully");
 
     // Run the monitoring loop
-    run_monitor(&args.rpc_ws, factory).await
+    run_monitor(&args.rpc_ws, factory, args.subscribe_persisted_blocks).await
 }

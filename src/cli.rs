@@ -24,6 +24,10 @@ pub struct Args {
     /// Chain to use
     #[arg(long, value_enum, default_value = "mainnet")]
     pub chain: Chain,
+
+    /// Use reth_subscribeLatestPersistedBlock instead of standard block subscription
+    #[arg(long, default_value = "false")]
+    pub subscribe_persisted_blocks: bool,
 }
 
 pub fn get_chain_spec(chain: Chain) -> Arc<ChainSpec> {

@@ -7727,6 +7727,8 @@ dependencies = [
 name = "reth-stale-direct-db"
 version = "0.1.0"
 dependencies = [
+ "alloy-eips",
+ "alloy-primitives",
  "alloy-provider",
  "alloy-rpc-types-eth",
  "clap",
