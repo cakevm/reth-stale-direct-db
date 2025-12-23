@@ -8,7 +8,7 @@ use reth_ethereum::provider::{BlockHashReader, BlockNumReader, HeaderProvider};
 use reth_provider::ProviderFactory;
 use reth_provider::providers::ProviderNodeTypes;
 use std::time::Duration;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info};
 
 use crate::consistency::check_block_hash_reader_health;
 use crate::sync::wait_for_sync;
@@ -56,10 +56,15 @@ where
 
         // The database might be slightly behind the RPC
         if db_last_block < block_number {
-            debug!(
+            // Still read the latest block hash from DB to verify DB access works
+            let db_block_hash = provider.block_hash(db_last_block)?.ok_or_else(|| {
+                eyre::eyre!("Block hash not found for db_last_block {}", db_last_block)
+            })?;
+            info!(
                 db_last_block,
+                %db_block_hash,
                 rpc_block_number = block_number,
-                "Database is behind RPC (expected during sync)"
+                "Database is behind RPC, skipping"
             );
             continue;
         }
@@ -68,32 +73,29 @@ where
         check_block_hash_reader_health(db_last_block, &provider)
             .map_err(|e| eyre::eyre!("Database consistency check failed: {}", e))?;
 
-        // Read block hash from database
-        let db_block_hash = provider.block_hash(block_number)?;
+        info!(
+            block_number,
+            db_last_block, "Consistency check passed (256 block hashes accessible)"
+        );
 
-        match db_block_hash {
-            Some(hash) => {
-                if hash == rpc_block_hash {
-                    info!(
-                        block_number,
-                        %hash,
-                        "Block hash matches"
-                    );
-                } else {
-                    error!(
-                        block_number,
-                        %rpc_block_hash,
-                        db_hash = %hash,
-                        "Block hash MISMATCH!"
-                    );
-                }
-            }
-            None => {
-                warn!(
-                    block_number,
-                    db_last_block, "Block hash not found in database"
-                );
-            }
+        // Read block hash from database
+        let db_block_hash = provider
+            .block_hash(block_number)?
+            .ok_or_else(|| eyre::eyre!("Block hash not found for block {}", block_number))?;
+
+        if db_block_hash == rpc_block_hash {
+            info!(
+                block_number,
+                %db_block_hash,
+                "Block hash matches"
+            );
+        } else {
+            return Err(eyre::eyre!(
+                "Block hash MISMATCH at block {}: RPC={} DB={}",
+                block_number,
+                rpc_block_hash,
+                db_block_hash
+            ));
         }
 
         // Also read header for additional verification
