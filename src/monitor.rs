@@ -8,7 +8,7 @@ use reth_ethereum::provider::{BlockHashReader, BlockNumReader, HeaderProvider};
 use reth_provider::ProviderFactory;
 use reth_provider::providers::ProviderNodeTypes;
 use std::time::Duration;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::consistency::check_block_hash_reader_health;
 use crate::sync::wait_for_sync;
@@ -65,6 +65,9 @@ where
                 %db_block_hash,
                 rpc_block_number = block_number,
                 "Database is behind RPC, skipping"
+            );
+            warn!(
+                "Reth must be running with `--persistence.threshold 0` to ensure immediate DB writes"
             );
             continue;
         }
