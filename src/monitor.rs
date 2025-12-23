@@ -67,7 +67,7 @@ where
                 "Database is behind RPC, skipping"
             );
             warn!(
-                "Reth must be running with `--persistence.threshold 0` to ensure immediate DB writes"
+                "Reth must be running with `--engine.persistence-threshold 0` to ensure immediate DB writes"
             );
             continue;
         }
