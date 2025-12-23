@@ -1,6 +1,6 @@
 # reth-stale-direct-db
 
-Minimal example for reading from reth's direct database while subscribing to new block events via WebSocket RPC. Includes database consistency checks based on [rbuilder](https://github.com/flashbots/rbuilder)'s implementation.
+Minimal example for reading from reth's direct database while subscribing to new block events via WebSocket RPC. Includes database consistency checks based on [rbuilder's `check_block_hash_reader_health`](https://github.com/flashbots/rbuilder/blob/95323c/crates/rbuilder/src/utils/provider_factory_reopen.rs#L157) implementation.
 
 ## Problem
 
