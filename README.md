@@ -37,6 +37,7 @@ cargo run -- --rpc-ws wss://holesky.example.com --db-path ~/.local/share/reth/ho
 RUST_LOG=debug cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet
 
 # Use reth_subscribeLatestPersistedBlock (requires https://github.com/cakevm/reth branch subscribe-persisted-block)
+# Note: Reth can be running with --engine.persistence-threshold 0 for immediate DB writes
 cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet --subscribe-persisted-blocks
 ```
 
