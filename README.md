@@ -35,6 +35,9 @@ cargo run -- --rpc-ws wss://holesky.example.com --db-path ~/.local/share/reth/ho
 
 # With debug logging
 RUST_LOG=debug cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet
+
+# Use reth_subscribeLatestPersistedBlock (requires custom reth build)
+cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet --subscribe-persisted-blocks
 ```
 
 ## CLI Options
@@ -44,6 +47,7 @@ RUST_LOG=debug cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.
 | `--rpc-ws` | WebSocket RPC URL for block subscriptions     | Required |
 | `--db-path` | Path to reth data directory                   | Required |
 | `--chain` | Chain to use: `mainnet`, `sepolia`, `holesky` | `mainnet` |
+| `--subscribe-persisted-blocks` | Use `reth_subscribeLatestPersistedBlock` instead of standard `eth_subscribe` | `false` |
 
 ## Output
 
