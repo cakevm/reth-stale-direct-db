@@ -5,9 +5,9 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-# reth
-reth-ethereum = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3", features = ["node"] }
-reth-provider = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3" }
+# reth (using cakevm fork with subscribe-persisted-block feature)
+reth-ethereum = { git = "https://github.com/cakevm/reth", branch = "subscribe-persisted-block", features = ["node"] }
+reth-provider = { git = "https://github.com/cakevm/reth", branch = "subscribe-persisted-block" }
 
 # alloy
 alloy-eips = "1.1"

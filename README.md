@@ -36,7 +36,7 @@ cargo run -- --rpc-ws wss://holesky.example.com --db-path ~/.local/share/reth/ho
 # With debug logging
 RUST_LOG=debug cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet
 
-# Use reth_subscribeLatestPersistedBlock (requires custom reth build)
+# Use reth_subscribeLatestPersistedBlock (requires https://github.com/cakevm/reth branch subscribe-persisted-block)
 cargo run -- --rpc-ws wss://eth-mainnet.example.com --db-path ~/.local/share/reth/mainnet --subscribe-persisted-blocks
 ```
 
