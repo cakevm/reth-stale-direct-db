@@ -1,0 +1,26 @@
+[package]
+name = "reth-stale-direct-db"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+
+[dependencies]
+# reth
+reth-ethereum = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3", features = ["node"] }
+reth-provider = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3" }
+
+# alloy
+alloy-provider = { version = "1.1", features = ["ws"] }
+
+# async
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+
+# CLI & Error handling
+clap = { version = "4", features = ["derive"] }
+eyre = "0.6"
+thiserror = "2"
+
+# logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
