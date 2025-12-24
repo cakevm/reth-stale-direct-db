@@ -27,7 +27,7 @@ When enabled, the tool subscribes to both:
 - Standard `eth_subscribe newHeads` for new block headers
 - Custom `reth_subscribeLatestPersistedBlock` for persistence events
 
-Headers are buffered until a persistence event arrives, then all buffered blocks up to the persisted block number are processed. This mode also tracks and logs the time elapsed since the last flush, which is useful for measuring persistence latency.
+Headers are buffered until a persistence event arrives, then all buffered blocks up to the persisted block number are processed. This mode tracks the latency from header arrival to persistence event, which is useful for measuring how quickly blocks are written to disk.
 
 ## Usage
 
@@ -80,13 +80,13 @@ INFO reth_stale_direct_db::monitor: Subscribing to newHeads...
 INFO reth_stale_direct_db::monitor: Subscribing to reth_subscribeLatestPersistedBlock...
 INFO reth_stale_direct_db::monitor: Subscribed to both streams, waiting...
 INFO reth_stale_direct_db::monitor: Header received, buffering block_number=24076371 hash=0x007dc92b... pending=0
-INFO reth_stale_direct_db::monitor: Flush triggered by persisted block persisted_block=24076371 hash=0x007dc92b... blocks_to_flush=1 elapsed_ms=0
-INFO reth_stale_direct_db::monitor: New block from RPC block_number=24076371 rpc_block_hash=0x007dc92b...
+INFO reth_stale_direct_db::monitor: Flush triggered by persisted block persisted_block=24076371 blocks_to_flush=1 max_latency_ms=502
+INFO reth_stale_direct_db::monitor: New block from RPC block_number=24076371 rpc_block_hash=0x007dc92b... latency_ms=503
 INFO reth_stale_direct_db::monitor: Consistency check passed (256 block hashes accessible) block_number=24076371 db_last_block=24076371
 INFO reth_stale_direct_db::monitor: Block hash matches block_number=24076371 db_block_hash=0x007dc92b...
 INFO reth_stale_direct_db::monitor: Header received, buffering block_number=24076372 hash=0x94ed9823... pending=0
-INFO reth_stale_direct_db::monitor: Flush triggered by persisted block persisted_block=24076372 hash=0x94ed9823... blocks_to_flush=1 elapsed_ms=11234
-INFO reth_stale_direct_db::monitor: New block from RPC block_number=24076372 rpc_block_hash=0x94ed9823...
+INFO reth_stale_direct_db::monitor: Flush triggered by persisted block persisted_block=24076372 blocks_to_flush=1 max_latency_ms=498
+INFO reth_stale_direct_db::monitor: New block from RPC block_number=24076372 rpc_block_hash=0x94ed9823... latency_ms=499
 INFO reth_stale_direct_db::monitor: Consistency check passed (256 block hashes accessible) block_number=24076372 db_last_block=24076372
 INFO reth_stale_direct_db::monitor: Block hash matches block_number=24076372 db_block_hash=0x94ed9823...
 ```

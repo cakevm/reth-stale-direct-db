@@ -74,10 +74,8 @@ where
         let mut combined = select(header_stream, persisted_stream);
         info!("Subscribed to both streams, waiting...");
 
-        // Buffer for pending headers
-        let mut pending_headers: BTreeMap<u64, B256> = BTreeMap::new();
-        // Track last flush time
-        let mut last_flush: Option<Instant> = None;
+        // Buffer for pending headers (block_number -> (hash, arrival_time))
+        let mut pending_headers: BTreeMap<u64, (B256, Instant)> = BTreeMap::new();
 
         while let Some(event) = combined.next().await {
             match event {
@@ -88,32 +86,36 @@ where
                         pending = pending_headers.len(),
                         "Header received, buffering"
                     );
-                    pending_headers.insert(number, hash);
+                    pending_headers.insert(number, (hash, Instant::now()));
                 }
                 BlockEvent::Persisted { number, hash } => {
-                    let elapsed = last_flush.map(|t| t.elapsed()).unwrap_or(Duration::ZERO);
-
                     // Collect blocks to process (all <= persisted block number)
                     let blocks_to_process: Vec<_> = pending_headers
                         .range(..=number)
-                        .map(|(&n, &h)| (n, h))
+                        .map(|(&n, &(h, t))| (n, h, t))
                         .collect();
+
+                    // Calculate max latency from header arrival to persistence
+                    let max_latency = blocks_to_process
+                        .iter()
+                        .map(|(_, _, t)| t.elapsed())
+                        .max()
+                        .unwrap_or(Duration::ZERO);
 
                     info!(
                         persisted_block = number,
                         %hash,
                         blocks_to_flush = blocks_to_process.len(),
-                        elapsed_ms = elapsed.as_millis(),
+                        max_latency_ms = max_latency.as_millis(),
                         "Flush triggered by persisted block"
                     );
 
                     // Process all buffered headers up to persisted block
-                    for (block_number, block_hash) in blocks_to_process {
-                        process_block(block_number, block_hash, &factory)?;
+                    for (block_number, block_hash, arrival_time) in blocks_to_process {
+                        let latency = arrival_time.elapsed();
+                        process_block(block_number, block_hash, latency, &factory)?;
                         pending_headers.remove(&block_number);
                     }
-
-                    last_flush = Some(Instant::now());
                 }
             }
         }
@@ -123,7 +125,7 @@ where
         info!("Subscribed to new blocks, waiting...");
 
         while let Some(BlockEvent::Header { number, hash }) = stream.next().await {
-            process_block(number, hash, &factory)?;
+            process_block(number, hash, Duration::ZERO, &factory)?;
         }
     }
 
@@ -134,6 +136,7 @@ where
 fn process_block<N>(
     block_number: u64,
     rpc_block_hash: B256,
+    latency: Duration,
     factory: &ProviderFactory<N>,
 ) -> Result<()>
 where
@@ -142,6 +145,7 @@ where
     info!(
         block_number,
         %rpc_block_hash,
+        latency_ms = latency.as_millis(),
         "New block from RPC"
     );
 
