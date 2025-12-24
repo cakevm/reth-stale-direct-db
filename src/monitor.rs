@@ -84,7 +84,7 @@ where
                         block_number = number,
                         %hash,
                         pending = pending_headers.len(),
-                        "Header received, buffering"
+                        "New head received"
                     );
                     pending_headers.insert(number, (hash, Instant::now()));
                 }
@@ -103,11 +103,11 @@ where
                         .unwrap_or(Duration::ZERO);
 
                     info!(
-                        persisted_block = number,
+                        block_number = number,
                         %hash,
                         blocks_to_flush = blocks_to_process.len(),
                         max_latency_ms = max_latency.as_millis(),
-                        "Flush triggered by persisted block"
+                        "New latest persisted block received"
                     );
 
                     // Process all buffered headers up to persisted block
@@ -146,7 +146,7 @@ where
         block_number,
         %rpc_block_hash,
         latency_ms = latency.as_millis(),
-        "New block from RPC"
+        "Verifying block"
     );
 
     // Get provider for reads (opens RO transaction)
