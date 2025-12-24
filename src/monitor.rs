@@ -5,15 +5,25 @@ use alloy_primitives::B256;
 use alloy_provider::{Provider, ProviderBuilder, WsConnect};
 use eyre::Result;
 use futures::StreamExt;
+use futures::stream::select;
 use reth_ethereum::primitives::AlloyBlockHeader;
 use reth_ethereum::provider::{BlockHashReader, BlockNumReader, HeaderProvider};
 use reth_provider::ProviderFactory;
 use reth_provider::providers::ProviderNodeTypes;
-use std::time::Duration;
+use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use crate::consistency::check_block_hash_reader_health;
 use crate::sync::wait_for_sync;
+
+/// Event from either subscription stream
+enum BlockEvent {
+    /// New block header from eth_subscribe newHeads
+    Header { number: u64, hash: B256 },
+    /// Block persisted to DB from reth_subscribeLatestPersistedBlock
+    Persisted { number: u64, hash: B256 },
+}
 
 /// Run the block monitoring loop.
 ///
@@ -22,8 +32,8 @@ use crate::sync::wait_for_sync;
 /// 2. Compares RPC block hash with database block hash
 /// 3. Exits if consistency check fails
 ///
-/// If `subscribe_persisted_blocks` is true, uses reth_subscribeLatestPersistedBlock
-/// instead of standard eth_subscribe for blocks.
+/// If `subscribe_persisted_blocks` is true, also subscribes to reth_subscribeLatestPersistedBlock
+/// and waits for persistence events before processing accumulated headers.
 pub async fn run_monitor<N>(
     rpc_ws: &str,
     factory: ProviderFactory<N>,
@@ -41,26 +51,79 @@ where
     // Wait for node to sync
     wait_for_sync(&rpc_provider, Duration::from_secs(5)).await?;
 
-    // Subscribe to blocks based on mode
+    // Always subscribe to block headers
+    info!("Subscribing to newHeads...");
+    let header_sub = rpc_provider.subscribe_blocks().await?;
+    let header_stream = header_sub.into_stream().map(|h| BlockEvent::Header {
+        number: h.inner.number,
+        hash: h.hash,
+    });
+
     if subscribe_persisted_blocks {
-        info!("Using reth_subscribeLatestPersistedBlock subscription");
-        let sub = rpc_provider
+        // Also subscribe to persisted blocks
+        info!("Subscribing to reth_subscribeLatestPersistedBlock...");
+        let persisted_sub = rpc_provider
             .subscribe_to::<BlockNumHash>("reth_subscribeLatestPersistedBlock")
             .await?;
-        let mut stream = sub.into_stream();
-        info!("Subscribed to persisted blocks, waiting...");
+        let persisted_stream = persisted_sub.into_stream().map(|b| BlockEvent::Persisted {
+            number: b.number,
+            hash: b.hash,
+        });
 
-        while let Some(block) = stream.next().await {
-            process_block(block.number, block.hash, &factory)?;
+        // Merge both streams
+        let mut combined = select(header_stream, persisted_stream);
+        info!("Subscribed to both streams, waiting...");
+
+        // Buffer for pending headers
+        let mut pending_headers: BTreeMap<u64, B256> = BTreeMap::new();
+        // Track last flush time
+        let mut last_flush: Option<Instant> = None;
+
+        while let Some(event) = combined.next().await {
+            match event {
+                BlockEvent::Header { number, hash } => {
+                    info!(
+                        block_number = number,
+                        %hash,
+                        pending = pending_headers.len(),
+                        "Header received, buffering"
+                    );
+                    pending_headers.insert(number, hash);
+                }
+                BlockEvent::Persisted { number, hash } => {
+                    let elapsed = last_flush.map(|t| t.elapsed()).unwrap_or(Duration::ZERO);
+
+                    // Collect blocks to process (all <= persisted block number)
+                    let blocks_to_process: Vec<_> = pending_headers
+                        .range(..=number)
+                        .map(|(&n, &h)| (n, h))
+                        .collect();
+
+                    info!(
+                        persisted_block = number,
+                        %hash,
+                        blocks_to_flush = blocks_to_process.len(),
+                        elapsed_ms = elapsed.as_millis(),
+                        "Flush triggered by persisted block"
+                    );
+
+                    // Process all buffered headers up to persisted block
+                    for (block_number, block_hash) in blocks_to_process {
+                        process_block(block_number, block_hash, &factory)?;
+                        pending_headers.remove(&block_number);
+                    }
+
+                    last_flush = Some(Instant::now());
+                }
+            }
         }
     } else {
-        info!("Using standard eth_subscribe newHeads subscription");
-        let sub = rpc_provider.subscribe_blocks().await?;
-        let mut stream = sub.into_stream();
+        // Simple mode: process headers immediately
+        let mut stream = header_stream;
         info!("Subscribed to new blocks, waiting...");
 
-        while let Some(rpc_header) = stream.next().await {
-            process_block(rpc_header.inner.number, rpc_header.hash, &factory)?;
+        while let Some(BlockEvent::Header { number, hash }) = stream.next().await {
+            process_block(number, hash, &factory)?;
         }
     }
 
