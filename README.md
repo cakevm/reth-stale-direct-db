@@ -21,6 +21,16 @@ This tool monitors the database consistency by:
 3. Comparing RPC block hashes with database block hashes
 4. **Exiting immediately if consistency check fails**
 
+### Test Setup
+
+This tool tests database consistency by:
+
+- **Keeping `ProviderFactory` open**: The factory is created once at startup and reused throughout the program's lifetime. This simulates a long-running application that maintains a connection to reth's database.
+
+- **Creating a new `Provider` per block**: For each block event, we call `factory.provider()` to obtain a fresh read-only database transaction. This is the correct usage pattern - holding transactions open indefinitely would be problematic.
+
+This setup mirrors how production applications (like block builders) interact with reth's database, making it effective for detecting the static file caching issues described in [reth#7836](https://github.com/paradigmxyz/reth/issues/7836).
+
 ### Persisted Blocks Mode (`--subscribe-persisted-blocks`)
 
 When enabled, the tool subscribes to both:
