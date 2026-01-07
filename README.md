@@ -6,6 +6,21 @@ Minimal example for reading from reth's direct database while subscribing to new
 
 When reading from reth's database while the node is running, there can be consistency issues where historical block hashes become temporarily unavailable. This is documented in [reth#7836](https://github.com/paradigmxyz/reth/issues/7836).
 
+Using this test tool shows the error after running for some time (took some days):
+```
+2025-12-29T22:40:33.225332Z  INFO reth_stale_direct_db::monitor: Verifying block block_number=24121341 rpc_block_hash=0xbfbdb7a27eaedef22033dd49da7bc71539068875eeb92dac82a7aa5de561a9db latency_ms=18951
+2025-12-29T22:40:33.225676Z  INFO reth_stale_direct_db::monitor: Consistency check passed (256 block hashes accessible) block_number=24121341 db_last_block=24121341
+2025-12-29T22:40:33.225691Z  INFO reth_stale_direct_db::monitor: Block hash matches block_number=24121341 db_block_hash=0xbfbdb7a27eaedef22033dd49da7bc71539068875eeb92dac82a7aa5de561a9db
+2025-12-29T22:40:37.642138Z  INFO reth_stale_direct_db::monitor: New head received block_number=24121342 hash=0x4b6fdd9fd87029da165b943397d8807476ad10b0d48e9ab2f5be0efc2e4ae377 pending=1
+2025-12-29T22:40:44.829011Z  INFO reth_stale_direct_db::monitor: New latest persisted block received block_number=24121342 hash=0x46c575d28271edb69888167b0a577ef9f0d1feccc95135b1579374eb70f3bdae blocks_to_flush=1 max_latency_ms=7186
+2025-12-29T22:40:44.829029Z  INFO reth_stale_direct_db::monitor: Verifying block block_number=24121342 rpc_block_hash=0x4b6fdd9fd87029da165b943397d8807476ad10b0d48e9ab2f5be0efc2e4ae377 latency_ms=7186
+2025-12-29T22:40:44.829226Z  INFO reth_stale_direct_db::monitor: Consistency check passed (256 block hashes accessible) block_number=24121342 db_last_block=24121342
+Error: Block hash MISMATCH at block 24121342: RPC=0x4b6fdd9fd87029da165b943397d8807476ad10b0d48e9ab2f5be0efc2e4ae377 DB=0x46c575d28271edb69888167b0a577ef9f0d1feccc95135b1579374eb70f3bdae
+
+Location:
+    src/monitor.rs:197:20
+```
+
 ### Potential Fix
 
 There's an experimental commit by joshieDo that removes static file caching entirely ("create mmap every time"):
